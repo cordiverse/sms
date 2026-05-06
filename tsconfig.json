@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.base",
+  "compilerOptions": {
+    "paths": {
+      "@cordisjs/sms": ["./packages/core/src"],
+      "@cordisjs/plugin-sms-*": ["./packages/*/src"],
+    },
+  },
+  "include": [],
+}
