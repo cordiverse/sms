@@ -1,0 +1,33 @@
+{
+  "name": "@cordisjs/plugin-sms-twilio",
+  "version": "0.1.0",
+  "description": "Twilio SMS provider for @cordisjs/sms",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib"
+  ],
+  "author": "Shigma <shigma10826@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cordiverse/sms.git",
+    "directory": "packages/twilio"
+  },
+  "bugs": {
+    "url": "https://github.com/cordiverse/sms/issues"
+  },
+  "homepage": "https://github.com/cordiverse/sms",
+  "peerDependencies": {
+    "@cordisjs/sms": "^0.1.0",
+    "cordis": "^4.0.0-rc.4"
+  },
+  "devDependencies": {
+    "@cordisjs/sms": "^0.1.0",
+    "cordis": "^4.0.0-rc.4"
+  },
+  "dependencies": {
+    "schemastery": "^3.18.0"
+  }
+}
