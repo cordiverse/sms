@@ -1,14 +1,20 @@
 import { Context } from 'cordis'
-import { createHmac } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
 import { SmsService } from '@cordisjs/sms'
 import z from 'schemastery'
+
+export interface Template {
+  id: string
+  variables: string[]
+}
 
 export interface Config extends SmsService.Config {
   secretId: string
   secretKey: string
   sdkAppId: string
   signName: string
-  templateId: string
+  /** Logical template name → {Tencent TemplateId, positional variable order} */
+  templates: Record<string, Template>
   region?: string
 }
 
@@ -18,7 +24,10 @@ export class TencentSmsService extends SmsService {
     secretKey: z.string().required().role('secret').description('Secret Key。'),
     sdkAppId: z.string().required().description('短信应用 SDK AppId。'),
     signName: z.string().required().description('短信签名。'),
-    templateId: z.string().required().description('模板 ID。'),
+    templates: z.dict(z.object({
+      id: z.string().required().description('腾讯云模板 ID。'),
+      variables: z.array(String).default([]).description('按位置匹配的变量名列表 ({1} {2} ...)。'),
+    })).default({}).description('模板映射。'),
     region: z.string().default('ap-guangzhou').description('地域。'),
   })
 
@@ -26,37 +35,36 @@ export class TencentSmsService extends SmsService {
     super(ctx, config)
   }
 
-  async send(phone: string, content: string) {
+  async sendTemplate(phone: string, name: string, variables: Record<string, string> = {}) {
+    const template = this.config.templates[name]
+    if (!template) throw new Error(`Unknown SMS template: ${name}`)
+
     const {
       secretId,
       secretKey,
       sdkAppId,
       signName,
-      templateId,
       region = 'ap-guangzhou',
     } = this.config
 
-    // Tencent Cloud API v3 (TC3-HMAC-SHA256)
+    const paramSet = template.variables.map((v) => variables[v] ?? '')
+
     const service = 'sms'
     const host = 'sms.tencentcloudapi.com'
     const now = Math.floor(Date.now() / 1000)
     const date = new Date(now * 1000).toISOString().slice(0, 10)
 
-    // Ensure phone has country code
     const phoneNumber = phone.startsWith('+') ? phone : `+86${phone}`
 
     const payload = JSON.stringify({
       SmsSdkAppId: sdkAppId,
       SignName: signName,
-      TemplateId: templateId,
-      TemplateParamSet: [content],
+      TemplateId: template.id,
+      TemplateParamSet: paramSet,
       PhoneNumberSet: [phoneNumber],
     })
 
-    // Actually need SHA256 hash, not HMAC
-    const { createHash } = await import('node:crypto')
     const payloadHash = createHash('sha256').update(payload).digest('hex')
-
     const canonicalRequest = [
       'POST',
       '/',

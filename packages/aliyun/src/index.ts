@@ -7,9 +7,8 @@ export interface Config extends SmsService.Config {
   accessKeyId: string
   accessKeySecret: string
   signName: string
-  templateCode: string
-  /** Template param name for the code (default: "code") */
-  templateParam?: string
+  /** Logical template name → Aliyun TemplateCode */
+  templates: Record<string, string>
   endpoint?: string
 }
 
@@ -18,8 +17,7 @@ export class AliyunSmsService extends SmsService {
     accessKeyId: z.string().required().description('AccessKey ID。'),
     accessKeySecret: z.string().required().role('secret').description('AccessKey Secret。'),
     signName: z.string().required().description('短信签名名称。'),
-    templateCode: z.string().required().description('短信模板 Code。'),
-    templateParam: z.string().default('code').description('模板中接收内容的变量名。'),
+    templates: z.dict(String).default({}).description('模板映射（逻辑名 → 阿里云 TemplateCode）。'),
     endpoint: z.string().default('https://dysmsapi.aliyuncs.com').description('API 端点。'),
   })
 
@@ -27,13 +25,14 @@ export class AliyunSmsService extends SmsService {
     super(ctx, config)
   }
 
-  async send(phone: string, content: string) {
+  async sendTemplate(phone: string, name: string, variables: Record<string, string> = {}) {
+    const templateCode = this.config.templates[name]
+    if (!templateCode) throw new Error(`Unknown SMS template: ${name}`)
+
     const {
       accessKeyId,
       accessKeySecret,
       signName,
-      templateCode,
-      templateParam = 'code',
       endpoint = 'https://dysmsapi.aliyuncs.com',
     } = this.config
 
@@ -49,12 +48,11 @@ export class AliyunSmsService extends SmsService {
       PhoneNumbers: phone,
       SignName: signName,
       TemplateCode: templateCode,
-      TemplateParam: JSON.stringify({ [templateParam]: content }),
+      TemplateParam: JSON.stringify(variables),
     }
 
-    // Sign
     const sorted = Object.keys(params).sort()
-    const canonicalized = sorted.map(k =>
+    const canonicalized = sorted.map((k) =>
       `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`,
     ).join('&')
     const stringToSign = `GET&${encodeURIComponent('/')}&${encodeURIComponent(canonicalized)}`

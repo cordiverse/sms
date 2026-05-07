@@ -6,9 +6,8 @@ import z from 'schemastery'
 export interface Config extends SmsService.Config {
   smsUser: string
   smsKey: string
-  templateId: number
-  /** Template variable name that holds the message content (default: "code") */
-  varName?: string
+  /** Logical template name → SendCloud numeric templateId */
+  templates: Record<string, number>
   /** Signature hash algorithm (default: "md5") */
   hashAlgorithm?: 'md5' | 'sha256'
   /** Default: https://api.sendcloud.net/smsapi/send */
@@ -22,8 +21,7 @@ export class SendcloudSmsService extends SmsService {
   static Config: z<Config> = z.object({
     smsUser: z.string().required().description('SMS User。'),
     smsKey: z.string().required().role('secret').description('SMS Key。'),
-    templateId: z.number().required().description('模板 ID。'),
-    varName: z.string().default('code').description('模板中接收内容的变量名。'),
+    templates: z.dict(z.number()).default({}).description('模板映射（逻辑名 → SendCloud templateId）。'),
     hashAlgorithm: z.union([
       z.const('md5').required(),
       z.const('sha256').required(),
@@ -40,12 +38,13 @@ export class SendcloudSmsService extends SmsService {
     super(ctx, config)
   }
 
-  async send(phone: string, content: string) {
+  async sendTemplate(phone: string, name: string, variables: Record<string, string> = {}) {
+    const templateId = this.config.templates[name]
+    if (!templateId) throw new Error(`Unknown SMS template: ${name}`)
+
     const {
       smsUser,
       smsKey,
-      templateId,
-      varName = 'code',
       hashAlgorithm = 'md5',
       endpoint = 'https://api.sendcloud.net/smsapi/send',
       msgType,
@@ -56,12 +55,11 @@ export class SendcloudSmsService extends SmsService {
       smsUser,
       templateId: String(templateId),
       phone,
-      vars: JSON.stringify({ [varName]: content }),
+      vars: JSON.stringify(variables),
     }
     if (msgType !== undefined) params.msgType = String(msgType)
     if (sendRequestId) params.sendRequestId = sendRequestId
 
-    // Sign: sorted "k=v" pairs joined by "&", wrapped as SMS_KEY + "&" + ... + "&" + SMS_KEY
     const paramStr = Object.keys(params).sort()
       .map((k) => `${k}=${params[k]}`)
       .join('&')

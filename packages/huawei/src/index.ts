@@ -3,14 +3,20 @@ import { createHash, randomBytes } from 'node:crypto'
 import { SmsService } from '@cordisjs/sms'
 import z from 'schemastery'
 
+export interface Template {
+  id: string
+  variables: string[]
+}
+
 export interface Config extends SmsService.Config {
   appKey: string
   appSecret: string
   /** Channel number (通道号) allocated to the SMS signature, e.g. csms100000001 */
   sender: string
-  templateId: string
-  /** Required only when templateId refers to a 通用模板 */
+  /** Required only when the template type is 通用模板 */
   signature?: string
+  /** Logical template name → {Huawei templateId, positional variable order} */
+  templates: Record<string, Template>
   /** Default: https://smsapi.cn-north-4.myhuaweicloud.com:443 */
   endpoint?: string
   statusCallback?: string
@@ -21,8 +27,11 @@ export class HuaweiSmsService extends SmsService {
     appKey: z.string().required().description('App Key。'),
     appSecret: z.string().required().role('secret').description('App Secret。'),
     sender: z.string().required().description('签名通道号 (如 csms100000001)。'),
-    templateId: z.string().required().description('模板 ID。'),
     signature: z.string().description('签名名称 (仅通用模板需要)。'),
+    templates: z.dict(z.object({
+      id: z.string().required().description('华为云模板 ID。'),
+      variables: z.array(String).default([]).description('按位置匹配的变量名列表。'),
+    })).default({}).description('模板映射。'),
     endpoint: z.string().default('https://smsapi.cn-north-4.myhuaweicloud.com:443').description('API 端点。'),
     statusCallback: z.string().description('状态回调地址。'),
   })
@@ -31,20 +40,23 @@ export class HuaweiSmsService extends SmsService {
     super(ctx, config)
   }
 
-  async send(phone: string, content: string) {
+  async sendTemplate(phone: string, name: string, variables: Record<string, string> = {}) {
+    const template = this.config.templates[name]
+    if (!template) throw new Error(`Unknown SMS template: ${name}`)
+
     const {
       appKey,
       appSecret,
       sender,
-      templateId,
       signature,
       endpoint = 'https://smsapi.cn-north-4.myhuaweicloud.com:443',
       statusCallback,
     } = this.config
 
+    const paras = template.variables.map((v) => variables[v] ?? '')
+
     const nonce = randomBytes(16).toString('hex')
     const created = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
-    // PasswordDigest = Base64(hex(SHA256(Nonce + Created + Password)))
     const digest = createHash('sha256').update(nonce + created + appSecret).digest('hex')
     const passwordDigest = Buffer.from(digest).toString('base64')
     const wsse = `UsernameToken Username="${appKey}",PasswordDigest="${passwordDigest}",Nonce="${nonce}",Created="${created}"`
@@ -52,8 +64,8 @@ export class HuaweiSmsService extends SmsService {
     const body: Record<string, string> = {
       from: sender,
       to: phone,
-      templateId,
-      templateParas: JSON.stringify([content]),
+      templateId: template.id,
+      templateParas: JSON.stringify(paras),
     }
     if (signature) body.signature = signature
     if (statusCallback) body.statusCallback = statusCallback
