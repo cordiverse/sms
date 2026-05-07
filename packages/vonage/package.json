@@ -1,6 +1,6 @@
 {
   "name": "@cordisjs/plugin-sms-vonage",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Vonage (Nexmo) SMS provider for @cordisjs/sms",
   "type": "module",
   "main": "lib/index.js",
@@ -20,11 +20,11 @@
   },
   "homepage": "https://github.com/cordiverse/sms",
   "peerDependencies": {
-    "@cordisjs/sms": "^0.1.0",
+    "@cordisjs/sms": "^0.2.0",
     "cordis": "^4.0.0-rc.4"
   },
   "devDependencies": {
-    "@cordisjs/sms": "^0.1.0",
+    "@cordisjs/sms": "^0.2.0",
     "cordis": "^4.0.0-rc.4"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "@cordisjs/sms",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Abstract SMS Service for Cordis",
   "type": "module",
   "main": "lib/index.js",
