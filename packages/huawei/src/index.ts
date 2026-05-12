@@ -23,6 +23,8 @@ export interface Config extends SmsService.Config {
 }
 
 export class HuaweiSmsService extends SmsService {
+  static name = 'sms:huawei'
+
   static Config: z<Config> = z.object({
     appKey: z.string().required().description('App Key。'),
     appSecret: z.string().required().role('secret').description('App Secret。'),
@@ -40,9 +42,10 @@ export class HuaweiSmsService extends SmsService {
     super(ctx, config)
   }
 
-  async sendTemplate(phone: string, name: string, variables: Record<string, string> = {}) {
-    const template = this.config.templates[name]
-    if (!template) throw new Error(`Unknown SMS template: ${name}`)
+  async sendTemplate(phone: string, templateId: string, variables: Record<string, string> = {}) {
+    this.ctx.logger.debug('send template %s: %o', templateId, variables)
+    const template = this.config.templates[templateId]
+    if (!template) throw new Error(`Unknown SMS template: ${templateId}`)
 
     const {
       appKey,

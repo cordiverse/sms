@@ -11,6 +11,8 @@ export interface Config extends SmsService.Config {
 }
 
 export class TwilioSmsService extends SmsService {
+  static name = 'sms:twilio'
+
   static Config: z<Config> = z.object({
     accountSid: z.string().required().description('Account SID。'),
     authToken: z.string().required().role('secret').description('Auth Token。'),
@@ -23,6 +25,7 @@ export class TwilioSmsService extends SmsService {
   }
 
   async sendText(phone: string, content: string) {
+    this.ctx.logger.debug('send text: %s', content)
     const { accountSid, authToken, from } = this.config
     const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
     const res = await fetch(

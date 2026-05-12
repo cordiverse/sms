@@ -18,6 +18,8 @@ export interface Config extends SmsService.Config {
 }
 
 export class SendcloudSmsService extends SmsService {
+  static name = 'sms:sendcloud'
+
   static Config: z<Config> = z.object({
     smsUser: z.string().required().description('SMS User。'),
     smsKey: z.string().required().role('secret').description('SMS Key。'),
@@ -38,9 +40,10 @@ export class SendcloudSmsService extends SmsService {
     super(ctx, config)
   }
 
-  async sendTemplate(phone: string, name: string, variables: Record<string, string> = {}) {
-    const templateId = this.config.templates[name]
-    if (!templateId) throw new Error(`Unknown SMS template: ${name}`)
+  async sendTemplate(phone: string, templateId: string, variables: Record<string, string> = {}) {
+    this.ctx.logger.debug('send template %s: %o', templateId, variables)
+    const providerId = this.config.templates[templateId]
+    if (!providerId) throw new Error(`Unknown SMS template: ${templateId}`)
 
     const {
       smsUser,
@@ -53,7 +56,7 @@ export class SendcloudSmsService extends SmsService {
 
     const params: Record<string, string> = {
       smsUser,
-      templateId: String(templateId),
+      templateId: String(providerId),
       phone,
       vars: JSON.stringify(variables),
     }

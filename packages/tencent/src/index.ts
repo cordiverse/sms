@@ -19,6 +19,8 @@ export interface Config extends SmsService.Config {
 }
 
 export class TencentSmsService extends SmsService {
+  static name = 'sms:tencent'
+
   static Config: z<Config> = z.object({
     secretId: z.string().required().description('Secret ID。'),
     secretKey: z.string().required().role('secret').description('Secret Key。'),
@@ -35,9 +37,10 @@ export class TencentSmsService extends SmsService {
     super(ctx, config)
   }
 
-  async sendTemplate(phone: string, name: string, variables: Record<string, string> = {}) {
-    const template = this.config.templates[name]
-    if (!template) throw new Error(`Unknown SMS template: ${name}`)
+  async sendTemplate(phone: string, templateId: string, variables: Record<string, string> = {}) {
+    this.ctx.logger.debug('send template %s: %o', templateId, variables)
+    const template = this.config.templates[templateId]
+    if (!template) throw new Error(`Unknown SMS template: ${templateId}`)
 
     const {
       secretId,

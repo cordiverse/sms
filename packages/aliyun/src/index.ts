@@ -13,6 +13,8 @@ export interface Config extends SmsService.Config {
 }
 
 export class AliyunSmsService extends SmsService {
+  static name = 'sms:aliyun'
+
   static Config: z<Config> = z.object({
     accessKeyId: z.string().required().description('AccessKey ID。'),
     accessKeySecret: z.string().required().role('secret').description('AccessKey Secret。'),
@@ -25,9 +27,10 @@ export class AliyunSmsService extends SmsService {
     super(ctx, config)
   }
 
-  async sendTemplate(phone: string, name: string, variables: Record<string, string> = {}) {
-    const templateCode = this.config.templates[name]
-    if (!templateCode) throw new Error(`Unknown SMS template: ${name}`)
+  async sendTemplate(phone: string, templateId: string, variables: Record<string, string> = {}) {
+    this.ctx.logger.debug('send template %s: %o', templateId, variables)
+    const templateCode = this.config.templates[templateId]
+    if (!templateCode) throw new Error(`Unknown SMS template: ${templateId}`)
 
     const {
       accessKeyId,

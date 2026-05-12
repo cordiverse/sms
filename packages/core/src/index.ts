@@ -1,5 +1,4 @@
 import { Context, Service } from 'cordis'
-
 declare module 'cordis' {
   interface Context {
     sms: SmsService
@@ -12,6 +11,8 @@ export function renderTemplate(template: string, variables: Record<string, strin
 }
 
 export abstract class SmsService extends Service {
+  static name = 'sms'
+
   constructor(ctx: Context, public config: SmsService.Config = {}) {
     super(ctx, 'sms')
   }
@@ -24,17 +25,18 @@ export abstract class SmsService extends Service {
    * the template locally and forwards to `sendText`. Drivers backed by a native
    * cloud template system (aliyun / tencent / huawei / sendcloud) override this.
    */
-  async sendTemplate(phone: string, name: string, variables: Record<string, string> = {}): Promise<void> {
+  async sendTemplate(phone: string, templateId: string, variables: Record<string, string> = {}): Promise<void> {
+    this.ctx.logger.debug('send template %s: %o', templateId, variables)
     if (!this.sendText) {
       throw new Error(
         `${this.constructor.name} does not implement sendTemplate or sendText — override one of them.`,
       )
     }
-    const tmpl = (this.config as { templates?: Record<string, string> }).templates?.[name]
-    if (typeof tmpl !== 'string') {
-      throw new Error(`Unknown SMS template: ${name}`)
+    const template = (this.config as { templates?: Record<string, string> }).templates?.[templateId]
+    if (typeof template !== 'string') {
+      throw new Error(`Unknown SMS template: ${templateId}`)
     }
-    await this.sendText(phone, renderTemplate(tmpl, variables))
+    await this.sendText(phone, renderTemplate(template, variables))
   }
 
   /** Send a raw text message. Only implemented by drivers whose backend allows free-form SMS content (Twilio, Vonage). */

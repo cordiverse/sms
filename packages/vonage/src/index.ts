@@ -11,6 +11,8 @@ export interface Config extends SmsService.Config {
 }
 
 export class VonageSmsService extends SmsService {
+  static name = 'sms:vonage'
+
   static Config: z<Config> = z.object({
     apiKey: z.string().required().description('API Key。'),
     apiSecret: z.string().required().role('secret').description('API Secret。'),
@@ -23,6 +25,7 @@ export class VonageSmsService extends SmsService {
   }
 
   async sendText(phone: string, content: string) {
+    this.ctx.logger.debug('send text: %s', content)
     const { apiKey, apiSecret, from } = this.config
     const res = await fetch('https://rest.nexmo.com/sms/json', {
       method: 'POST',

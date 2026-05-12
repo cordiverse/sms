@@ -1,6 +1,5 @@
-import { Context, Inject } from 'cordis'
+import { Context } from 'cordis'
 import { SmsService } from '@cordisjs/sms'
-import type {} from '@cordisjs/plugin-logger'
 import z from 'schemastery'
 
 declare module 'cordis' {
@@ -12,8 +11,9 @@ declare module 'cordis' {
 
 export interface Config extends SmsService.Config {}
 
-@Inject('logger', true, { name: 'sms:mock' })
 export class MockSmsService extends SmsService {
+  static name = 'sms:mock'
+
   static Config: z<Config> = z.object({})
 
   constructor(ctx: Context, public config: Config = {}) {
